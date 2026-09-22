@@ -1076,7 +1076,8 @@ public final class Dictionary<K, V> implements Iterable<K> {
     }
 
     private static boolean isStableCustomKey(Object key) {
-        if (key instanceof List<?> || key instanceof LinkedList<?> || key instanceof Set<?>\n            || key instanceof Dictionary<?, ?>) {
+        if (key instanceof List<?> || key instanceof LinkedList<?> || key instanceof Set<?>
+            || key instanceof Dictionary<?, ?>) {
             return false;
         }
 
