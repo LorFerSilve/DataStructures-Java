@@ -16,6 +16,12 @@ public final class Examples {
         words.sort(String::length);
         System.out.println("Stable sort by length: " + words);
 
+        LinkedList<String> route = LinkedList.of("A", "B", "C");
+        route.addFirst("start");
+        route.addLast("finish");
+        route.removeAt(2);
+        System.out.println("Linked route: " + route);
+
         Tuple point = Tuple.of("origin", 0, 0);
         System.out.println("Tuple: " + point + ", label: " + point.get(0, String.class));
 
