@@ -51,6 +51,11 @@ public final class RepresentationTests {
         stack.push(stack);
         equal("Stack([Stack([...])])", stack.toString(), "self-referencing stack");
 
+        equal("Queue([])", new Queue<>().toString(), "empty queue");
+        Queue<Object> queue = new Queue<>();
+        queue.add(queue);
+        equal("Queue([Queue([...])])", queue.toString(), "self-referencing queue");
+
         equal("ArrayDeque([])", new ArrayDeque<>().toString(), "empty deque");
         equal("ArrayDeque(['first', True])", ArrayDeque.of("first", true).toString(), "deque repr");
         ArrayDeque<Object> deque = new ArrayDeque<>();
@@ -72,12 +77,15 @@ public final class RepresentationTests {
         // so mutation does not change their identity when used as keys.
         Dictionary<Object, String> identityKeys = new Dictionary<>();
         identityKeys.put(stack, "stack");
+        identityKeys.put(queue, "queue");
         identityKeys.put(deque, "deque");
         identityKeys.put(heap, "heap");
         stack.push("changed");
+        queue.add("changed");
         deque.addLast("changed");
         heap.add("changed");
         equal("stack", identityKeys.get(stack), "stack identity key survives mutation");
+        equal("queue", identityKeys.get(queue), "queue identity key survives mutation");
         equal("deque", identityKeys.get(deque), "deque identity key survives mutation");
         equal("heap", identityKeys.get(heap), "heap identity key survives mutation");
     }
