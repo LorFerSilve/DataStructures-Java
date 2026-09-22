@@ -36,12 +36,17 @@ public final class Examples {
         System.out.println("Latest stack entry: " + history.peek());
         System.out.println("Undo stack entry: " + history.pop());
 
-        ArrayDeque<String> queue = ArrayDeque.of("first", "second");
-        queue.addLast("third");
-        System.out.println("Next in queue: " + queue.removeFirst());
-        queue.push("urgent");
-        System.out.println("Stack pop: " + queue.pop());
-        System.out.println("Remaining queue: " + queue);
+        Queue<String> jobs = Queue.of("compile", "test");
+        jobs.offer("package");
+        System.out.println("Next queued job: " + jobs.remove());
+        System.out.println("Remaining jobs: " + jobs);
+
+        ArrayDeque<String> deque = ArrayDeque.of("first", "second");
+        deque.addLast("third");
+        System.out.println("Next deque item: " + deque.removeFirst());
+        deque.push("urgent");
+        System.out.println("Deque stack pop: " + deque.pop());
+        System.out.println("Remaining deque: " + deque);
 
         BinaryHeap<Integer> priorities = BinaryHeap.of(8, 3, 5, 1);
         System.out.println("Lowest priority value: " + priorities.poll());

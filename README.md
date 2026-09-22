@@ -5,7 +5,8 @@ dependencies. `List` gebruikt een dynamische array. `Set` en `Dictionary`
 gebruiken eigen hashtabellen met open adressering. `Dictionary` bewaart bovendien
 de invoegvolgorde. `Tuple` is een onveranderlijke reeks met eventueel verschillende
 typen elementen. `Stack` gebruikt een eigen dynamische array voor LIFO-bewerkingen.
-`ArrayDeque` gebruikt een circulaire array voor bewerkingen aan beide uiteinden.
+`Queue` gebruikt een circulaire array voor FIFO-bewerkingen. `ArrayDeque` gebruikt een
+circulaire array voor bewerkingen aan beide uiteinden.
 `BinaryHeap` gebruikt een array voor een prioriteitswachtrij.
 
 ## Bouwen en testen
@@ -18,7 +19,7 @@ Open PowerShell in deze map en voer uit:
 .\test.ps1 -Demo
 ```
 
-Het script compileert met `--release 17 -Xlint:all -Werror` en voert acht testsuites
+Het script compileert met `--release 17 -Xlint:all -Werror` en voert negen testsuites
 uit. Tests gebruiken expliciete controles en werken ook zonder `-ea`.
 De gecompileerde bestanden komen in `build/classes`.
 
@@ -66,11 +67,16 @@ history.push("save");
 history.peek();                              // "save"
 history.pop();                               // "save"
 
-ArrayDeque<String> queue = ArrayDeque.of("first", "second");
-queue.addLast("third");
-queue.removeFirst();                    // "first": FIFO-wachtrij
-queue.push("urgent");                   // toevoegen aan de voorkant
-queue.pop();                            // "urgent": LIFO-stack
+Queue<String> jobs = Queue.of("compile", "test");
+jobs.offer("package");
+jobs.peek();                             // "compile"
+jobs.poll();                             // "compile"
+
+ArrayDeque<String> deque = ArrayDeque.of("first", "second");
+deque.addLast("third");
+deque.removeFirst();                    // "first"
+deque.push("urgent");                   // toevoegen aan de voorkant
+deque.pop();                            // "urgent": LIFO-stack
 
 BinaryHeap<Integer> heap = BinaryHeap.of(8, 3, 5, 1);
 heap.peek();                            // 1, zonder te verwijderen
@@ -94,6 +100,7 @@ maxHeap.poll();                         // 8
 | `Set<T>` | add/remove/discard/pop, union, intersection, difference, symmetricDifference, varianten die de set wijzigen, subset/superset/disjoint, streams |
 | `Dictionary<K,V>` | put/get/setDefault, remove/pop/popItem, update/union, updateEntries/updateItems, live keys/values/items, snapshots, reversed, streams |
 | `Stack<T>` | push/pop/peek, contains/search, clear, kopieën, snapshots, streams |
+| `Queue<T>` | add/offer, remove/poll, element/peek, contains/remove(value), clear, kopieën, snapshots, streams |
 | `ArrayDeque<T>` | add/remove/poll/peek aan beide uiteinden, queue- en stackmethoden, verwijderen op waarde, voorwaartse/achterwaartse iteratie, kopieën, streams |
 | `BinaryHeap<T>` | add/offer, peek/poll, element/remove, verwijderen op waarde, comparator, heapify-constructor, gesorteerde kopie, streams |
 
@@ -120,23 +127,28 @@ maxHeap.poll();                         // 8
 - Structurele wijzigingen maken bestaande iterators ongeldig. De structuren
   zijn niet bedoeld voor gelijktijdig wijzigen vanuit meerdere threads.
 - `List`, `Tuple`, `Set` en `Dictionary` vergelijken hun inhoud met instanties
-  van dezelfde custom structuur. `Stack`, `ArrayDeque` en `BinaryHeap` gebruiken
-  objectidentiteit voor `equals` en `hashCode`.
+  van dezelfde custom structuur. `Stack`, `Queue`, `ArrayDeque` en `BinaryHeap`
+  gebruiken objectidentiteit voor `equals` en `hashCode`.
   Hashkeys en setelementen moeten stabiele
   `equals`/`hashCode` houden. Dictionary weigert de veranderlijke custom
   containers als key, ook wanneer die in een tuple zitten.
 
-## Stack, ArrayDeque en BinaryHeap
+## Stack, Queue, ArrayDeque en BinaryHeap
 
 `Stack` laat `null` toe. `pop()` en `peek()` gooien een `NoSuchElementException`
 wanneer de stack leeg is, zodat `null` nooit als leegtesentinel hoeft te dienen.
 Iteratie en snapshots lopen van onder naar boven; `search(value)` telt vanaf de top
 met een één-gebaseerde afstand en geeft `-1` terug wanneer de waarde ontbreekt.
 
-`ArrayDeque` en `BinaryHeap` weigeren `null`. Daardoor kan `poll` of `peek` ondubbelzinnig
+`Queue`, `ArrayDeque` en `BinaryHeap` weigeren `null`. Daardoor kan `poll` of `peek` ondubbelzinnig
 `null` teruggeven wanneer de structuur leeg is. `remove()` en `element()` gooien
 dan een `NoSuchElementException`; hetzelfde geldt voor `pop`, `removeFirst`,
 `removeLast`, `getFirst` en `getLast` bij de deque.
+
+`Queue` voegt met `add`/`offer` achteraan toe en leest of verwijdert met
+`element`/`peek`/`remove`/`poll` vooraan. `remove(value)` verwijdert de eerste
+overeenkomst. De queue gebruikt een circulaire buffer, zodat normaal enqueue- en
+dequeuewerk geen elementen hoeft te verschuiven.
 
 Bij de deque voegen `add`/`offer` achteraan toe en lezen of verwijderen
 `element`/`peek`/`remove`/`poll` vooraan. `push` en `pop` werken beide vooraan.
@@ -177,6 +189,10 @@ veel hashes botsen. Het opschalen of verkleinen van een hashtabel is O(n).
 Bij `Stack` is `push` geamortiseerd O(1) en zijn `pop` en `peek` O(1).
 Zoeken is O(n); een vergroting, kopie of `trimToSize()` kost O(n).
 
+Bij `Queue` zijn `add`/`offer` geamortiseerd O(1) en zijn frontinspectie en
+frontverwijdering O(1). Zoeken en verwijderen op waarde zijn O(n). Groei, kopiëren
+en `trimToSize()` kosten O(n).
+
 Bij `ArrayDeque` zijn toevoegen en verwijderen aan beide uiteinden geamortiseerd
 O(1), en bekijken is O(1). Zoeken/verwijderen op waarde is O(n). De capaciteit
 groeit geometrisch; een vergroting, kopie of `trimToSize()` kost O(n).
@@ -192,5 +208,6 @@ sortering en callbackfouten, recursieve weergave, tuple-immutabiliteit,
 hashbotsingen, nulls, verwijderingen en invoegvolgorde. Willekeurige bewerkingen
 met vaste seeds worden vergeleken met Java's standaardcollecties, waaronder
 `java.util.ArrayDeque` en `java.util.PriorityQueue`. De nieuwe tests controleren
-ook LIFO-gedrag, stackgroei en nullwaarden, circulaire wraparound, groei/trimmen,
+ook LIFO-gedrag, stackgroei en nullwaarden, FIFO-gedrag en queue-wraparound,
+circulaire deque-wraparound, groei/trimmen,
 comparatoren, heapvolgorde, duplicaten en de lege-structuurcontracten.
