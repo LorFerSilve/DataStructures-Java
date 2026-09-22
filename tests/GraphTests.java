@@ -93,7 +93,7 @@ public final class GraphTests {
         check(!graph.removeEdge("A", "B"), "missing edge removal false");
 
         check(graph.removeVertex("C"), "remove incident vertex");
-        equal(2, graph.vertexCount(), "vertex count after removal");
+        equal(3, graph.vertexCount(), "vertex count after removal");
         equal(0, graph.edgeCount(), "incident edges removed");
         equal(List.of("A", "B", "D"), graph.vertices(),
             "remaining insertion order after vertex removal");
