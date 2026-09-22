@@ -31,6 +31,11 @@ public final class Examples {
         System.out.println("Last inserted item: " + inventory.popItem());
         System.out.println("Inventory: " + inventory);
 
+        Stack<String> history = Stack.of("open", "edit");
+        history.push("save");
+        System.out.println("Latest stack entry: " + history.peek());
+        System.out.println("Undo stack entry: " + history.pop());
+
         ArrayDeque<String> queue = ArrayDeque.of("first", "second");
         queue.addLast("third");
         System.out.println("Next in queue: " + queue.removeFirst());
