@@ -23,7 +23,7 @@ import java.util.stream.StreamSupport;
  * Python {@code dict} semantics.</p>
  *
  * <p>Keys must keep a stable {@code equals/hashCode} state while stored in the
- * dictionary. The mutable custom {@link List}, {@link Set} and
+ * dictionary. The mutable custom {@link List}, {@link LinkedList}, {@link Set} and
  * {@code Dictionary} types are therefore rejected as keys. Tuples are allowed
  * only when they do not recursively contain those mutable custom structures.</p>
  *
@@ -1069,14 +1069,15 @@ public final class Dictionary<K, V> implements Iterable<K> {
     private void validateKey(Object key) {
         if (!isStableCustomKey(key)) {
             throw new IllegalArgumentException(
-                "Mutable DataStructures.List, Set and Dictionary instances cannot "
+                "Mutable DataStructures.List, LinkedList, Set and Dictionary instances cannot "
                     + "be dictionary keys because their hashCode can change."
             );
         }
     }
 
     private static boolean isStableCustomKey(Object key) {
-        if (key instanceof List<?> || key instanceof Set<?> || key instanceof Dictionary<?, ?>) {
+        if (key instanceof List<?> || key instanceof LinkedList<?> || key instanceof Set<?>
+            || key instanceof Dictionary<?, ?>) {
             return false;
         }
 

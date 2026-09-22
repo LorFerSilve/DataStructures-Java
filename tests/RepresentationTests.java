@@ -46,6 +46,12 @@ public final class RepresentationTests {
         failing.set(0, "recovered");
         equal("['recovered']", failing.toString(), "guard cleaned after exception");
 
+        equal("LinkedList([])", new LinkedList<>().toString(), "empty linked list");
+        LinkedList<Object> linked = new LinkedList<>();
+        linked.append(linked);
+        equal("LinkedList([LinkedList([...])])", linked.toString(),
+            "self-referencing linked list");
+
         equal("Stack([])", new Stack<>().toString(), "empty stack");
         Stack<Object> stack = new Stack<>();
         stack.push(stack);

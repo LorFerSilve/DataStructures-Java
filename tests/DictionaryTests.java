@@ -154,9 +154,12 @@ public final class DictionaryTests {
 
         Dictionary<Object, Integer> dictionary = new Dictionary<>();
         expect(IllegalArgumentException.class, () -> dictionary.put(List.of(1), 1));
+        expect(IllegalArgumentException.class, () -> dictionary.put(LinkedList.of(1), 1));
         expect(IllegalArgumentException.class, () -> dictionary.put(Set.of(1), 1));
         expect(IllegalArgumentException.class, () -> dictionary.put(new Dictionary<>(), 1));
         expect(IllegalArgumentException.class, () -> dictionary.put(Tuple.of(Tuple.of(List.of(1))), 1));
+        expect(IllegalArgumentException.class,
+            () -> dictionary.put(Tuple.of(Tuple.of(LinkedList.of(1))), 1));
         dictionary.put(Tuple.of(1, Tuple.of("nested", null)), 5);
         check(dictionary.get(Tuple.of(1, Tuple.of("nested", null))).equals(5), "Stable tuple key");
 

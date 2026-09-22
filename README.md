@@ -1,7 +1,8 @@
 # DataStructures
 
 Eigen implementaties van algemene en Pythonachtige datastructuren in Java, zonder externe
-dependencies. `List` gebruikt een dynamische array. `Set` en `Dictionary`
+dependencies. `List` gebruikt een dynamische array. `LinkedList` gebruikt expliciete
+nodes met `prev`/`next`-links. `Set` en `Dictionary`
 gebruiken eigen hashtabellen met open adressering. `Dictionary` bewaart bovendien
 de invoegvolgorde. `Tuple` is een onveranderlijke reeks met eventueel verschillende
 typen elementen. `Stack` gebruikt een eigen dynamische array voor LIFO-bewerkingen.
@@ -19,7 +20,7 @@ Open PowerShell in deze map en voer uit:
 .\test.ps1 -Demo
 ```
 
-Het script compileert met `--release 17 -Xlint:all -Werror` en voert negen testsuites
+Het script compileert met `--release 17 -Xlint:all -Werror` en voert tien testsuites
 uit. Tests gebruiken expliciete controles en werken ook zonder `-ea`.
 De gecompileerde bestanden komen in `build/classes`.
 
@@ -47,6 +48,12 @@ values.removeSlice(1, 6, 2);            // [9, 8, 7]
 
 List<String> names = List.of("Ada", "Grace", "Linus");
 names.sort(String::length);            // stabiel; key eenmaal per element
+
+LinkedList<String> route = LinkedList.of("A", "B", "C");
+route.addFirst("start");
+route.addLast("finish");
+route.get(-1);                         // "finish"
+route.removeAt(2);                     // verwijdert "B"
 
 Tuple pair = Tuple.of("score", 42);
 int score = pair.get(-1, Integer.class);
@@ -96,6 +103,7 @@ maxHeap.poll();                         // 8
 | Structuur | Belangrijkste bewerkingen |
 | --- | --- |
 | `List<T>` | append, extend, insert, get/set, remove/pop, zoeken, slicing, slice vervangen/verwijderen, sort/sorted, concat, repeat, streams |
+| `LinkedList<T>` | append/prepend, add/remove aan beide uiteinden, insert, get/set, removeAt/pop, zoeken, reverse, voorwaartse/achterwaartse iteratie, streams |
 | `Tuple` | get met optioneel type, first/last, zoeken, slicing, concat, repeat, reversed, sorted, Java-conversies, streams |
 | `Set<T>` | add/remove/discard/pop, union, intersection, difference, symmetricDifference, varianten die de set wijzigen, subset/superset/disjoint, streams |
 | `Dictionary<K,V>` | put/get/setDefault, remove/pop/popItem, update/union, updateEntries/updateItems, live keys/values/items, snapshots, reversed, streams |
@@ -115,7 +123,7 @@ maxHeap.poll();                         // 8
 - Sorteren is stabiel. Een fout in de comparator of keyfunctie publiceert geen
   gedeeltelijk gesorteerde lijst. Structurele wijzigingen vanuit zo'n callback
   worden gedetecteerd; de eigen wijzigingen van de callback worden niet teruggedraaid.
-- `List`, `Tuple`, `Set`, `Dictionary` en `Stack` staan `null` toe als element, waarde of key. Bij de
+- `List`, `LinkedList`, `Tuple`, `Set`, `Dictionary` en `Stack` staan `null` toe als element, waarde of key. Bij de
   weergave verschijnt dit als `None`, met `True`/`False` voor booleans en quotes
   rond strings. Cyclische verwijzingen krijgen een `...`-placeholder.
 - Kopieën en Java-conversies zijn oppervlakkig: de container wordt gekopieerd,
@@ -126,12 +134,26 @@ maxHeap.poll();                         // 8
   juist kiezen, omdat tuples geen generieke typecontrole bieden.
 - Structurele wijzigingen maken bestaande iterators ongeldig. De structuren
   zijn niet bedoeld voor gelijktijdig wijzigen vanuit meerdere threads.
-- `List`, `Tuple`, `Set` en `Dictionary` vergelijken hun inhoud met instanties
-  van dezelfde custom structuur. `Stack`, `Queue`, `ArrayDeque` en `BinaryHeap`
+- `List`, `LinkedList`, `Tuple`, `Set` en `Dictionary` vergelijken hun inhoud met
+  instanties van dezelfde custom structuur. `Stack`, `Queue`, `ArrayDeque` en `BinaryHeap`
   gebruiken objectidentiteit voor `equals` en `hashCode`.
   Hashkeys en setelementen moeten stabiele
-  `equals`/`hashCode` houden. Dictionary weigert de veranderlijke custom
-  containers als key, ook wanneer die in een tuple zitten.
+  `equals`/`hashCode` houden. Dictionary weigert mutable `List`, `LinkedList`,
+  `Set` en `Dictionary`-instanties als key, ook wanneer die in een tuple zitten.
+
+## LinkedList
+
+`LinkedList` is een doubly linked list. Elke interne node bewaart een waarde en
+referenties naar de vorige en volgende node. `addFirst`, `addLast`, `removeFirst`
+en `removeLast` zijn daardoor O(1). `get`, `set`, `insert` en `removeAt` lopen vanaf
+het dichtstbijzijnde uiteinde en kosten O(min(i, n-i)). Negatieve indices worden
+zoals bij `List` vanaf het einde geïnterpreteerd; `insert` begrenst indices zoals
+Python. `descendingIterator()` en `reversed()` lopen van tail naar head.
+
+De nodes zijn implementatiedetails en worden niet publiek blootgesteld. `reverse()`
+draait de links in-place om. De klasse laat `null` toe en gebruikt structurele,
+volgordegevoelige `equals`/`hashCode`, waardoor een mutable `LinkedList` niet als
+Dictionary-key mag worden gebruikt.
 
 ## Stack, Queue, ArrayDeque en BinaryHeap
 
@@ -183,6 +205,10 @@ op Java's queues; ze implementeren niet de volledige `java.util.Deque`- of
 `List.get/set` zijn O(1), `append` is geamortiseerd O(1), invoegen/verwijderen
 binnen de lijst is O(n), en sorteren is O(n log n). Zoeken, slicing en kopiëren
 zijn lineair in het aantal onderzochte of gekopieerde elementen.
+Bij `LinkedList` zijn toevoegen en verwijderen aan head/tail O(1). Geïndexeerde
+toegang kost O(min(i, n-i)); zoeken, kopiëren en omkeren zijn O(n). De structuur
+gebruikt O(n) extra node-opslag en hoeft geen overcapaciteit te reserveren.
+
 Hashbewerkingen van `Set` en `Dictionary` zijn gemiddeld O(1), met O(n) als
 veel hashes botsen. Het opschalen of verkleinen van een hashtabel is O(n).
 
@@ -208,6 +234,8 @@ sortering en callbackfouten, recursieve weergave, tuple-immutabiliteit,
 hashbotsingen, nulls, verwijderingen en invoegvolgorde. Willekeurige bewerkingen
 met vaste seeds worden vergeleken met Java's standaardcollecties, waaronder
 `java.util.ArrayDeque` en `java.util.PriorityQueue`. De nieuwe tests controleren
-ook LIFO-gedrag, stackgroei en nullwaarden, FIFO-gedrag en queue-wraparound,
+ook linked-list pointerinvarianten, negatieve indices, reverse traversal en
+randomized differential tests tegen `java.util.LinkedList`, LIFO-gedrag,
+stackgroei en nullwaarden, FIFO-gedrag en queue-wraparound,
 circulaire deque-wraparound, groei/trimmen,
 comparatoren, heapvolgorde, duplicaten en de lege-structuurcontracten.
