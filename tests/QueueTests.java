@@ -225,6 +225,11 @@ public final class QueueTests {
             public boolean equals(Object other) {
                 throw new IllegalStateException("Deliberate equality failure");
             }
+
+            @Override
+            public int hashCode() {
+                return 1;
+            }
         };
 
         Iterator<Integer> iterator = queue.iterator();
@@ -241,6 +246,11 @@ public final class QueueTests {
                 queue.clear();
                 queue.add(42);
                 return true;
+            }
+
+            @Override
+            public int hashCode() {
+                return 2;
             }
         };
 
