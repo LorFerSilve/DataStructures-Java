@@ -39,7 +39,7 @@ public final class BinarySearchTree<T> implements Iterable<T> {
     private final Comparator<? super T> comparator;
 
     public BinarySearchTree() {
-        this(null);
+        this.comparator = null;
     }
 
     /** A null comparator selects natural ordering. */
