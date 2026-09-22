@@ -46,6 +46,11 @@ public final class RepresentationTests {
         failing.set(0, "recovered");
         equal("['recovered']", failing.toString(), "guard cleaned after exception");
 
+        equal("Stack([])", new Stack<>().toString(), "empty stack");
+        Stack<Object> stack = new Stack<>();
+        stack.push(stack);
+        equal("Stack([Stack([...])])", stack.toString(), "self-referencing stack");
+
         equal("ArrayDeque([])", new ArrayDeque<>().toString(), "empty deque");
         equal("ArrayDeque(['first', True])", ArrayDeque.of("first", true).toString(), "deque repr");
         ArrayDeque<Object> deque = new ArrayDeque<>();
@@ -66,10 +71,13 @@ public final class RepresentationTests {
         // These collections deliberately retain identity equality and hashing,
         // so mutation does not change their identity when used as keys.
         Dictionary<Object, String> identityKeys = new Dictionary<>();
+        identityKeys.put(stack, "stack");
         identityKeys.put(deque, "deque");
         identityKeys.put(heap, "heap");
+        stack.push("changed");
         deque.addLast("changed");
         heap.add("changed");
+        equal("stack", identityKeys.get(stack), "stack identity key survives mutation");
         equal("deque", identityKeys.get(deque), "deque identity key survives mutation");
         equal("heap", identityKeys.get(heap), "heap identity key survives mutation");
     }
