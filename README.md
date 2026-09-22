@@ -4,8 +4,9 @@ Eigen implementaties van algemene en Pythonachtige datastructuren in Java, zonde
 dependencies. `List` gebruikt een dynamische array. `Set` en `Dictionary`
 gebruiken eigen hashtabellen met open adressering. `Dictionary` bewaart bovendien
 de invoegvolgorde. `Tuple` is een onveranderlijke reeks met eventueel verschillende
-typen elementen. `ArrayDeque` gebruikt een circulaire array voor bewerkingen aan
-beide uiteinden. `BinaryHeap` gebruikt een array voor een prioriteitswachtrij.
+typen elementen. `Stack` gebruikt een eigen dynamische array voor LIFO-bewerkingen.
+`ArrayDeque` gebruikt een circulaire array voor bewerkingen aan beide uiteinden.
+`BinaryHeap` gebruikt een array voor een prioriteitswachtrij.
 
 ## Bouwen en testen
 
@@ -17,7 +18,7 @@ Open PowerShell in deze map en voer uit:
 .\test.ps1 -Demo
 ```
 
-Het script compileert met `--release 17 -Xlint:all -Werror` en voert zeven testsuites
+Het script compileert met `--release 17 -Xlint:all -Werror` en voert acht testsuites
 uit. Tests gebruiken expliciete controles en werken ook zonder `-ea`.
 De gecompileerde bestanden komen in `build/classes`.
 
@@ -60,6 +61,11 @@ counts.get("missing", 0);               // 0
 counts.items();                         // live view van key/value-tuples
 counts.popItem();                       // laatst ingevoegd item
 
+Stack<String> history = Stack.of("open", "edit");
+history.push("save");
+history.peek();                              // "save"
+history.pop();                               // "save"
+
 ArrayDeque<String> queue = ArrayDeque.of("first", "second");
 queue.addLast("third");
 queue.removeFirst();                    // "first": FIFO-wachtrij
@@ -87,6 +93,7 @@ maxHeap.poll();                         // 8
 | `Tuple` | get met optioneel type, first/last, zoeken, slicing, concat, repeat, reversed, sorted, Java-conversies, streams |
 | `Set<T>` | add/remove/discard/pop, union, intersection, difference, symmetricDifference, varianten die de set wijzigen, subset/superset/disjoint, streams |
 | `Dictionary<K,V>` | put/get/setDefault, remove/pop/popItem, update/union, updateEntries/updateItems, live keys/values/items, snapshots, reversed, streams |
+| `Stack<T>` | push/pop/peek, contains/search, clear, kopieën, snapshots, streams |
 | `ArrayDeque<T>` | add/remove/poll/peek aan beide uiteinden, queue- en stackmethoden, verwijderen op waarde, voorwaartse/achterwaartse iteratie, kopieën, streams |
 | `BinaryHeap<T>` | add/offer, peek/poll, element/remove, verwijderen op waarde, comparator, heapify-constructor, gesorteerde kopie, streams |
 
@@ -101,7 +108,7 @@ maxHeap.poll();                         // 8
 - Sorteren is stabiel. Een fout in de comparator of keyfunctie publiceert geen
   gedeeltelijk gesorteerde lijst. Structurele wijzigingen vanuit zo'n callback
   worden gedetecteerd; de eigen wijzigingen van de callback worden niet teruggedraaid.
-- `List`, `Tuple`, `Set` en `Dictionary` staan `null` toe als element, waarde of key. Bij de
+- `List`, `Tuple`, `Set`, `Dictionary` en `Stack` staan `null` toe als element, waarde of key. Bij de
   weergave verschijnt dit als `None`, met `True`/`False` voor booleans en quotes
   rond strings. Cyclische verwijzingen krijgen een `...`-placeholder.
 - Kopieën en Java-conversies zijn oppervlakkig: de container wordt gekopieerd,
@@ -113,15 +120,20 @@ maxHeap.poll();                         // 8
 - Structurele wijzigingen maken bestaande iterators ongeldig. De structuren
   zijn niet bedoeld voor gelijktijdig wijzigen vanuit meerdere threads.
 - `List`, `Tuple`, `Set` en `Dictionary` vergelijken hun inhoud met instanties
-  van dezelfde custom structuur. `ArrayDeque` en `BinaryHeap` gebruiken
-  objectidentiteit voor `equals` en `hashCode`, zoals Java's deque en priority queue.
+  van dezelfde custom structuur. `Stack`, `ArrayDeque` en `BinaryHeap` gebruiken
+  objectidentiteit voor `equals` en `hashCode`.
   Hashkeys en setelementen moeten stabiele
   `equals`/`hashCode` houden. Dictionary weigert de veranderlijke custom
   containers als key, ook wanneer die in een tuple zitten.
 
-## ArrayDeque en BinaryHeap
+## Stack, ArrayDeque en BinaryHeap
 
-Beide structuren weigeren `null`. Daardoor kan `poll` of `peek` ondubbelzinnig
+`Stack` laat `null` toe. `pop()` en `peek()` gooien een `NoSuchElementException`
+wanneer de stack leeg is, zodat `null` nooit als leegtesentinel hoeft te dienen.
+Iteratie en snapshots lopen van onder naar boven; `search(value)` telt vanaf de top
+met een één-gebaseerde afstand en geeft `-1` terug wanneer de waarde ontbreekt.
+
+`ArrayDeque` en `BinaryHeap` weigeren `null`. Daardoor kan `poll` of `peek` ondubbelzinnig
 `null` teruggeven wanneer de structuur leeg is. `remove()` en `element()` gooien
 dan een `NoSuchElementException`; hetzelfde geldt voor `pop`, `removeFirst`,
 `removeLast`, `getFirst` en `getLast` bij de deque.
@@ -162,6 +174,9 @@ zijn lineair in het aantal onderzochte of gekopieerde elementen.
 Hashbewerkingen van `Set` en `Dictionary` zijn gemiddeld O(1), met O(n) als
 veel hashes botsen. Het opschalen of verkleinen van een hashtabel is O(n).
 
+Bij `Stack` is `push` geamortiseerd O(1) en zijn `pop` en `peek` O(1).
+Zoeken is O(n); een vergroting, kopie of `trimToSize()` kost O(n).
+
 Bij `ArrayDeque` zijn toevoegen en verwijderen aan beide uiteinden geamortiseerd
 O(1), en bekijken is O(1). Zoeken/verwijderen op waarde is O(n). De capaciteit
 groeit geometrisch; een vergroting, kopie of `trimToSize()` kost O(n).
@@ -177,5 +192,5 @@ sortering en callbackfouten, recursieve weergave, tuple-immutabiliteit,
 hashbotsingen, nulls, verwijderingen en invoegvolgorde. Willekeurige bewerkingen
 met vaste seeds worden vergeleken met Java's standaardcollecties, waaronder
 `java.util.ArrayDeque` en `java.util.PriorityQueue`. De nieuwe tests controleren
-ook circulaire wraparound, groei/trimmen, comparatoren, heapvolgorde, duplicaten
-en de lege-structuurcontracten.
+ook LIFO-gedrag, stackgroei en nullwaarden, circulaire wraparound, groei/trimmen,
+comparatoren, heapvolgorde, duplicaten en de lege-structuurcontracten.
