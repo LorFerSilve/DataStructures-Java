@@ -6,6 +6,7 @@ public final class AllTests {
 
     public static void main(String[] args) {
         run("List", ListTests::run);
+        run("LinkedList", LinkedListTests::run);
         run("Tuple", TupleTests::run);
         run("Set", SetTests::run);
         run("Dictionary", DictionaryTests::run);
@@ -14,7 +15,7 @@ public final class AllTests {
         run("ArrayDeque", ArrayDequeTests::run);
         run("BinaryHeap", BinaryHeapTests::run);
         run("Representation", RepresentationTests::run);
-        System.out.println("All 9 test suites passed.");
+        System.out.println("All 10 test suites passed.");
     }
 
     private static void run(String name, Runnable suite) {
