@@ -10,10 +10,11 @@ public final class AllTests {
         run("Set", SetTests::run);
         run("Dictionary", DictionaryTests::run);
         run("Stack", StackTests::run);
+        run("Queue", QueueTests::run);
         run("ArrayDeque", ArrayDequeTests::run);
         run("BinaryHeap", BinaryHeapTests::run);
         run("Representation", RepresentationTests::run);
-        System.out.println("All 8 test suites passed.");
+        System.out.println("All 9 test suites passed.");
     }
 
     private static void run(String name, Runnable suite) {
