@@ -168,16 +168,18 @@ public final class BinarySearchTreeTests {
         nonComparable.add(new Object());
         throwsType(ClassCastException.class, () -> nonComparable.add(new Object()));
 
-        @SuppressWarnings("unchecked")
-        BinarySearchTree<Integer>[] holder = new BinarySearchTree[1];
+        final class TreeHolder {
+            private BinarySearchTree<Integer> tree;
+        }
+        TreeHolder holder = new TreeHolder();
         Comparator<Integer> mutating = (left, right) -> {
-            holder[0].clear();
+            holder.tree.clear();
             return Integer.compare(left, right);
         };
-        holder[0] = new BinarySearchTree<>(mutating);
-        holder[0].add(10);
-        throwsType(ConcurrentModificationException.class, () -> holder[0].add(5));
-        check(holder[0].isEmpty(), "comparator mutation retained but detected");
+        holder.tree = new BinarySearchTree<>(mutating);
+        holder.tree.add(10);
+        throwsType(ConcurrentModificationException.class, () -> holder.tree.add(5));
+        check(holder.tree.isEmpty(), "comparator mutation retained but detected");
     }
 
     private static void iterationAndStreams() {
