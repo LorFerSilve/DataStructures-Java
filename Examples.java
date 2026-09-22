@@ -60,6 +60,13 @@ public final class Examples {
         System.out.println("BST level-order: " + searchTree.levelOrder());
         System.out.println("BST floor(9): " + searchTree.floor(9));
 
+        AVLTree<Integer> balancedTree = new AVLTree<>();
+        for (int value = 1; value <= 7; value++) {
+            balancedTree.add(value);
+        }
+        System.out.println("AVL level-order: " + balancedTree.levelOrder());
+        System.out.println("AVL height after sorted inserts: " + balancedTree.height());
+
         BinaryHeap<Integer> priorities = BinaryHeap.of(8, 3, 5, 1);
         System.out.println("Lowest priority value: " + priorities.poll());
         System.out.println("Remaining priorities, sorted: " + priorities.sorted());

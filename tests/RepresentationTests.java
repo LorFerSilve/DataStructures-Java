@@ -68,6 +68,12 @@ public final class RepresentationTests {
         deque.addLast(deque);
         equal("ArrayDeque([ArrayDeque([...])])", deque.toString(), "self-referencing deque");
 
+        equal("AVLTree([])", new AVLTree<>().toString(), "empty AVL tree");
+        AVLTree<Object> avl = new AVLTree<>((left, right) -> 0);
+        avl.add(avl);
+        equal("AVLTree([AVLTree([...])])", avl.toString(),
+            "self-referencing AVL tree");
+
         equal("BinarySearchTree([])", new BinarySearchTree<>().toString(), "empty BST");
         BinarySearchTree<Object> tree = new BinarySearchTree<>((left, right) -> 0);
         tree.add(tree);
@@ -94,15 +100,19 @@ public final class RepresentationTests {
         identityKeys.put(heap, "heap");
         BinarySearchTree<Integer> treeKey = BinarySearchTree.of(2, 1, 3);
         identityKeys.put(treeKey, "tree");
+        AVLTree<Integer> avlKey = AVLTree.of(2, 1, 3);
+        identityKeys.put(avlKey, "avl");
         stack.push("changed");
         queue.add("changed");
         deque.addLast("changed");
         heap.add("changed");
         treeKey.add(4);
+        avlKey.add(4);
         equal("stack", identityKeys.get(stack), "stack identity key survives mutation");
         equal("queue", identityKeys.get(queue), "queue identity key survives mutation");
         equal("deque", identityKeys.get(deque), "deque identity key survives mutation");
         equal("heap", identityKeys.get(heap), "heap identity key survives mutation");
         equal("tree", identityKeys.get(treeKey), "BST identity key survives mutation");
+        equal("avl", identityKeys.get(avlKey), "AVL identity key survives mutation");
     }
 }
