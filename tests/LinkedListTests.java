@@ -96,7 +96,7 @@ public final class LinkedListTests {
         equal(2, list.count(null), "null count");
 
         list.remove("x");
-        equal(java.util.List.of(null, "y", "x", null), list.toJavaList(), "remove first match");
+        equal(Arrays.asList(null, "y", "x", null), list.toJavaList(), "remove first match");
         throwsType(NoSuchElementException.class, () -> list.remove("missing"));
 
         Iterator<String> stale = list.iterator();
