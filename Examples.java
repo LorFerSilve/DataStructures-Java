@@ -67,6 +67,15 @@ public final class Examples {
         System.out.println("AVL level-order: " + balancedTree.levelOrder());
         System.out.println("AVL height after sorted inserts: " + balancedTree.height());
 
+        Graph<String> dependencyGraph = new Graph<>(true);
+        for (String step : java.util.List.of("compile", "test", "package")) {
+            dependencyGraph.addVertex(step);
+        }
+        dependencyGraph.addEdge("compile", "test");
+        dependencyGraph.addEdge("test", "package");
+        System.out.println("Graph BFS: " + dependencyGraph.breadthFirst("compile"));
+        System.out.println("Graph topological order: " + dependencyGraph.topologicalSort());
+
         BinaryHeap<Integer> priorities = BinaryHeap.of(8, 3, 5, 1);
         System.out.println("Lowest priority value: " + priorities.poll());
         System.out.println("Remaining priorities, sorted: " + priorities.sorted());
