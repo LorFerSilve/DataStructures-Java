@@ -54,6 +54,12 @@ public final class Examples {
         System.out.println("Deque stack pop: " + deque.pop());
         System.out.println("Remaining deque: " + deque);
 
+        BinarySearchTree<Integer> searchTree =
+            BinarySearchTree.of(8, 4, 12, 2, 6, 10, 14);
+        System.out.println("BST in-order: " + searchTree.inOrder());
+        System.out.println("BST level-order: " + searchTree.levelOrder());
+        System.out.println("BST floor(9): " + searchTree.floor(9));
+
         BinaryHeap<Integer> priorities = BinaryHeap.of(8, 3, 5, 1);
         System.out.println("Lowest priority value: " + priorities.poll());
         System.out.println("Remaining priorities, sorted: " + priorities.sorted());

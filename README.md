@@ -8,7 +8,8 @@ de invoegvolgorde. `Tuple` is een onveranderlijke reeks met eventueel verschille
 typen elementen. `Stack` gebruikt een eigen dynamische array voor LIFO-bewerkingen.
 `Queue` gebruikt een circulaire array voor FIFO-bewerkingen. `ArrayDeque` gebruikt een
 circulaire array voor bewerkingen aan beide uiteinden.
-`BinaryHeap` gebruikt een array voor een prioriteitswachtrij.
+`BinaryHeap` gebruikt een array voor een prioriteitswachtrij. `BinarySearchTree`
+gebruikt private nodes met parent/left/right-links voor geordende set-semantiek.
 
 ## Bouwen en testen
 
@@ -20,7 +21,7 @@ Open PowerShell in deze map en voer uit:
 .\test.ps1 -Demo
 ```
 
-Het script compileert met `--release 17 -Xlint:all -Werror` en voert tien testsuites
+Het script compileert met `--release 17 -Xlint:all -Werror` en voert elf testsuites
 uit. Tests gebruiken expliciete controles en werken ook zonder `-ea`.
 De gecompileerde bestanden komen in `build/classes`.
 
@@ -85,6 +86,13 @@ deque.removeFirst();                    // "first"
 deque.push("urgent");                   // toevoegen aan de voorkant
 deque.pop();                            // "urgent": LIFO-stack
 
+BinarySearchTree<Integer> tree =
+    BinarySearchTree.of(8, 4, 12, 2, 6, 10, 14);
+tree.inOrder();                         // [2, 4, 6, 8, 10, 12, 14]
+tree.levelOrder();                      // [8, 4, 12, 2, 6, 10, 14]
+tree.floor(9);                          // 8
+tree.higher(10);                        // 12
+
 BinaryHeap<Integer> heap = BinaryHeap.of(8, 3, 5, 1);
 heap.peek();                            // 1, zonder te verwijderen
 heap.poll();                            // verwijdert 1
@@ -111,6 +119,7 @@ maxHeap.poll();                         // 8
 | `Queue<T>` | add/offer, remove/poll, element/peek, contains/remove(value), clear, kopieën, snapshots, streams |
 | `ArrayDeque<T>` | add/remove/poll/peek aan beide uiteinden, queue- en stackmethoden, verwijderen op waarde, voorwaartse/achterwaartse iteratie, kopieën, streams |
 | `BinaryHeap<T>` | add/offer, peek/poll, element/remove, verwijderen op waarde, comparator, heapify-constructor, gesorteerde kopie, streams |
+| `BinarySearchTree<T>` | add/remove/contains, min/max, lower/floor/ceiling/higher, height/depth, in/pre/post/level-order traversals, reverse iteratie, streams |
 
 - Negatieve indices tellen vanaf het einde; een slice-eindpunt is exclusief.
   Slicegrenzen worden begrensd tot de reeks. Een stap van nul is ongeldig.
@@ -135,8 +144,8 @@ maxHeap.poll();                         // 8
 - Structurele wijzigingen maken bestaande iterators ongeldig. De structuren
   zijn niet bedoeld voor gelijktijdig wijzigen vanuit meerdere threads.
 - `List`, `LinkedList`, `Tuple`, `Set` en `Dictionary` vergelijken hun inhoud met
-  instanties van dezelfde custom structuur. `Stack`, `Queue`, `ArrayDeque` en `BinaryHeap`
-  gebruiken objectidentiteit voor `equals` en `hashCode`.
+  instanties van dezelfde custom structuur. `Stack`, `Queue`, `ArrayDeque`, `BinaryHeap`
+  en `BinarySearchTree` gebruiken objectidentiteit voor `equals` en `hashCode`.
   Hashkeys en setelementen moeten stabiele
   `equals`/`hashCode` houden. Dictionary weigert mutable `List`, `LinkedList`,
   `Set` en `Dictionary`-instanties als key, ook wanneer die in een tuple zitten.
@@ -154,6 +163,25 @@ De nodes zijn implementatiedetails en worden niet publiek blootgesteld. `reverse
 draait de links in-place om. De klasse laat `null` toe en gebruikt structurele,
 volgordegevoelige `equals`/`hashCode`, waardoor een mutable `LinkedList` niet als
 Dictionary-key mag worden gebruikt.
+
+## BinarySearchTree
+
+`BinarySearchTree` is de eerste structuur van Phase 3 (Trees). Waarden zijn uniek
+volgens natuurlijke ordening of een opgegeven `Comparator<? super T>`; wanneer
+twee waarden `compare(...) == 0` opleveren, blijft de reeds opgeslagen waarde staan
+en geeft `add` `false` terug. `null` wordt geweigerd.
+
+De boom bewaart private parent/left/right-links. `minimum`, `maximum`,
+`pollMinimum` en `pollMaximum` werken via de buitenste paden. `lower`, `floor`,
+`ceiling` en `higher` bieden navigatie zoals een geordende set. `iterator()` en
+`stream()` leveren in-order (gesorteerde) waarden; `descendingIterator()` en
+`reversed()` lopen in de omgekeerde comparatorvolgorde. Daarnaast zijn expliciete
+`inOrder`, `preOrder`, `postOrder` en `levelOrder` traversals beschikbaar.
+
+De boom balanceert zichzelf bewust **niet**. `height()` telt niveaus: een lege boom
+heeft hoogte 0 en een losse root hoogte 1. Een oplopende invoer kan dus een keten
+met hoogte n vormen. Dit maakt het verschil met de volgende tree-fase, een
+zelfbalancerende AVL-tree, expliciet zichtbaar.
 
 ## Stack, Queue, ArrayDeque en BinaryHeap
 
@@ -223,6 +251,11 @@ Bij `ArrayDeque` zijn toevoegen en verwijderen aan beide uiteinden geamortiseerd
 O(1), en bekijken is O(1). Zoeken/verwijderen op waarde is O(n). De capaciteit
 groeit geometrisch; een vergroting, kopie of `trimToSize()` kost O(n).
 
+Bij `BinarySearchTree` kosten `add`, `contains`, `remove`, navigatie en
+`minimum`/`maximum` O(h), waarbij h de boomhoogte is. Voor een redelijk gevormde
+boom is dat typisch O(log n), maar zonder balancing kan h tot n groeien.
+Traversals, `height()` en kopiëren zijn O(n); opslag is O(n).
+
 Bij `BinaryHeap` is `peek` O(1). Toevoegen en het bovenste element verwijderen
 kosten O(log n), afgezien van incidentele O(n)-arraygroei bij toevoegen.
 Bulkconstructie met heapify is O(n); zoeken of verwijderen op waarde is O(n).
@@ -233,7 +266,10 @@ De tests controleren onder meer extreme slicegrenzen en stapgroottes,
 sortering en callbackfouten, recursieve weergave, tuple-immutabiliteit,
 hashbotsingen, nulls, verwijderingen en invoegvolgorde. Willekeurige bewerkingen
 met vaste seeds worden vergeleken met Java's standaardcollecties, waaronder
-`java.util.ArrayDeque` en `java.util.PriorityQueue`. De nieuwe tests controleren
+`java.util.ArrayDeque`, `java.util.PriorityQueue` en `java.util.TreeSet`. De nieuwe
+tests controleren BST-verwijderingen met nul/één/twee kinderen, navigatiegrenzen,
+alle vier traversals, comparatorgedrag, degeneratie en randomized differential
+operations, en controleren
 ook linked-list pointerinvarianten, negatieve indices, reverse traversal en
 randomized differential tests tegen `java.util.LinkedList`, LIFO-gedrag,
 stackgroei en nullwaarden, FIFO-gedrag en queue-wraparound,
