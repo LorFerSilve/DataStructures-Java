@@ -260,7 +260,7 @@ public final class GraphTests {
 
         var stream = graph.stream();
         graph.addVertex("D");
-        equal(graph.vertices().toJavaList(), stream.toList(),
+        equal(asJavaList(graph.vertices()), stream.toList(),
             "stream late binding");
         equal((long) graph.vertexCount(), graph.parallelStream().count(),
             "parallel stream count");
@@ -278,7 +278,7 @@ public final class GraphTests {
         ArrayList<String> combined = new ArrayList<>();
         prefix.forEachRemaining(combined::add);
         split.forEachRemaining(combined::add);
-        equal(graph.vertices().toJavaList(), combined, "split preserves order");
+        equal(asJavaList(graph.vertices()), combined, "split preserves order");
 
         Spliterator<String> bound = graph.spliterator();
         bound.estimateSize();
@@ -328,7 +328,7 @@ public final class GraphTests {
                 case 7 -> {
                     if (expected.containsVertex(first)) {
                         equal(expected.neighbors(first),
-                            actual.neighbors(first).toJavaList(),
+                            asJavaList(actual.neighbors(first)),
                             "random neighbors");
                     }
                 }
@@ -346,7 +346,7 @@ public final class GraphTests {
             if (step % 250 == 0 && !expected.vertices.isEmpty()) {
                 int root = expected.vertices.keySet().iterator().next();
                 equal(expected.breadthFirst(root),
-                    actual.breadthFirst(root).toJavaList(),
+                    asJavaList(actual.breadthFirst(root)),
                     "random BFS");
             }
         }
@@ -359,14 +359,22 @@ public final class GraphTests {
         equal(expected.vertices.size(), actual.vertexCount(), "vertex count");
         equal(expected.edgeCount, actual.edgeCount(), "edge count");
         equal(new ArrayList<>(expected.vertices.keySet()),
-            actual.vertices().toJavaList(), "vertex order");
+            asJavaList(actual.vertices()), "vertex order");
 
         for (Map.Entry<Integer, LinkedHashSet<Integer>> entry
             : expected.vertices.entrySet()) {
             equal(new ArrayList<>(entry.getValue()),
-                actual.neighbors(entry.getKey()).toJavaList(),
+                asJavaList(actual.neighbors(entry.getKey())),
                 "neighbor order");
         }
+    }
+
+    private static <T> java.util.List<T> asJavaList(Iterable<T> values) {
+        ArrayList<T> result = new ArrayList<>();
+        for (T value : values) {
+            result.add(value);
+        }
+        return result;
     }
 
     private static final class ReferenceGraph {
