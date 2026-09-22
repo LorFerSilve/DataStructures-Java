@@ -435,7 +435,9 @@ public final class LinkedList<T> implements Iterable<T> {
 
         @Override
         public long estimateSize() {
-            return bind();
+            int remaining = bind();
+            checkForModification(expectedModCount);
+            return remaining;
         }
 
         @Override
