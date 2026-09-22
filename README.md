@@ -11,7 +11,9 @@ circulaire array voor bewerkingen aan beide uiteinden.
 `BinaryHeap` gebruikt een array voor een prioriteitswachtrij. `BinarySearchTree`
 gebruikt private nodes met parent/left/right-links voor geordende set-semantiek.
 `AVLTree` voegt per node hoogte-metadata en automatische rotations toe om de boom
-na elke mutatie gebalanceerd te houden.
+na elke mutatie gebalanceerd te houden. `Graph` gebruikt een adjacency-map bovenop
+de eigen `Dictionary`-implementatie en bewaart zowel vertices als neighbors in
+invoegvolgorde.
 
 ## Bouwen en testen
 
@@ -23,7 +25,7 @@ Open PowerShell in deze map en voer uit:
 .\test.ps1 -Demo
 ```
 
-Het script compileert met `--release 17 -Xlint:all -Werror` en voert twaalf testsuites
+Het script compileert met `--release 17 -Xlint:all -Werror` en voert dertien testsuites
 uit. Tests gebruiken expliciete controles en werken ook zonder `-ea`.
 De gecompileerde bestanden komen in `build/classes`.
 
@@ -102,6 +104,15 @@ for (int value = 1; value <= 7; value++) {
 avl.levelOrder();                       // [4, 2, 6, 1, 3, 5, 7]
 avl.height();                           // 3
 
+Graph<String> graph = new Graph<>(true);
+for (String step : java.util.List.of("compile", "test", "package")) {
+    graph.addVertex(step);
+}
+graph.addEdge("compile", "test");
+graph.addEdge("test", "package");
+graph.breadthFirst("compile");           // [compile, test, package]
+graph.topologicalSort();                 // [compile, test, package]
+
 BinaryHeap<Integer> heap = BinaryHeap.of(8, 3, 5, 1);
 heap.peek();                            // 1, zonder te verwijderen
 heap.poll();                            // verwijdert 1
@@ -130,6 +141,7 @@ maxHeap.poll();                         // 8
 | `BinaryHeap<T>` | add/offer, peek/poll, element/remove, verwijderen op waarde, comparator, heapify-constructor, gesorteerde kopie, streams |
 | `BinarySearchTree<T>` | add/remove/contains, min/max, lower/floor/ceiling/higher, height/depth, in/pre/post/level-order traversals, reverse iteratie, streams |
 | `AVLTree<T>` | dezelfde geordende-set API als BST, plus automatische LL/RR/LR/RL balancing met opgeslagen subtree heights |
+| `Graph<V>` | directed/undirected vertices en edges, neighbors/degrees, BFS/DFS, shortest path, components, cycle detection, topological sort, streams |
 
 - Negatieve indices tellen vanaf het einde; een slice-eindpunt is exclusief.
   Slicegrenzen worden begrensd tot de reeks. Een stap van nul is ongeldig.
@@ -155,7 +167,7 @@ maxHeap.poll();                         // 8
   zijn niet bedoeld voor gelijktijdig wijzigen vanuit meerdere threads.
 - `List`, `LinkedList`, `Tuple`, `Set` en `Dictionary` vergelijken hun inhoud met
   instanties van dezelfde custom structuur. `Stack`, `Queue`, `ArrayDeque`, `BinaryHeap`,
-  `BinarySearchTree` en `AVLTree` gebruiken objectidentiteit voor `equals` en `hashCode`.
+  `BinarySearchTree`, `AVLTree` en `Graph` gebruiken objectidentiteit voor `equals` en `hashCode`.
   Hashkeys en setelementen moeten stabiele
   `equals`/`hashCode` houden. Dictionary weigert mutable `List`, `LinkedList`,
   `Set` en `Dictionary`-instanties als key, ook wanneer die in een tuple zitten.
@@ -208,6 +220,28 @@ atomair hersteld voordat de volgende ancestor wordt verwerkt.
 Daardoor blijft de hoogte O(log n), ook voor pathologische invoervolgordes zoals
 `1, 2, 3, ..., n`. In tegenstelling tot de gewone BST kan een gesorteerde invoer de
 AVL-boom dus niet degraderen tot een lineaire keten.
+
+## Graph
+
+`Graph<V>` start Phase 4 (Graph Structures). De structuur ondersteunt zowel
+directed als undirected graphs. Vertices worden expliciet toegevoegd; `addEdge`
+vereist dat beide endpoints al bestaan. Parallelle edges worden geweigerd,
+self-loops zijn toegestaan en `null` vertices zijn niet toegestaan.
+
+Elke vertex heeft een eigen adjacency-`Dictionary`, zodat neighbor-volgorde
+reproduceerbaar blijft. `breadthFirst` en `depthFirst` zijn daardoor deterministisch.
+`shortestPath` gebruikt BFS en geeft voor deze ongewogen graph een pad met minimaal
+aantal edges. Undirected graphs ondersteunen `connectedComponents` en
+`isConnected`; `hasCycle` werkt voor beide graph-types. Directed acyclic graphs
+kunnen met Kahn's algoritme via `topologicalSort` geordend worden.
+
+`edgeList()` geeft `Tuple`-paren terug. Bij undirected graphs verschijnt elke edge
+slechts één keer, ook al worden beide adjacency-richtingen intern opgeslagen.
+Structurele wijzigingen aan vertices **of edges** maken bestaande Graph-iterators
+en gebonden spliterators ongeldig.
+
+Phase 4 is hiermee gestart; `DisjointSet<T>` / Union-Find is de volgende structuur
+binnen deze phase.
 
 ## Stack, Queue, ArrayDeque en BinaryHeap
 
@@ -288,6 +322,12 @@ Bij `AVLTree` blijft h door rotations O(log n). `add`, `contains`, `remove`,
 en kopiëren zijn O(n); een insertion of deletion gebruikt O(log n) padwerk en O(1)
 rotations per ongebalanceerde ancestor.
 
+Bij `Graph` zijn vertex- en adjacency-lookups gemiddeld O(1) door hashing.
+`addEdge`, `removeEdge` en `containsEdge` zijn gemiddeld O(1); `inDegree` van een
+directed vertex is O(V + E) in de huidige adjacency-out representatie. BFS, DFS,
+cycle detection, connected components en topological sort zijn O(V + E).
+`shortestPath` is eveneens O(V + E) en gebruikt O(V) extra traversal-state.
+
 Bij `BinaryHeap` is `peek` O(1). Toevoegen en het bovenste element verwijderen
 kosten O(log n), afgezien van incidentele O(n)-arraygroei bij toevoegen.
 Bulkconstructie met heapify is O(n); zoeken of verwijderen op waarde is O(n).
@@ -303,7 +343,11 @@ tests controleren BST-verwijderingen met nul/één/twee kinderen, navigatiegrenz
 alle vier traversals, comparatorgedrag en degeneratie. Voor AVL worden alle vier
 rotationfamilies, deletion-rebalancing, gesorteerde invoer, logarithmische
 hoogtegrenzen en 30.000 randomized differential operations tegen `TreeSet`
-gecontroleerd. Daarmee is Phase 3 (Trees) afgerond. De suites controleren
+gecontroleerd. Daarmee is Phase 3 (Trees) afgerond. De Graph-suite controleert
+directed/undirected edge-semantiek, self-loops, degrees, vertex-removal, BFS/DFS,
+shortest paths, connected components, cycles, topological sorting, fail-fast
+traversal en twee 20.000-step randomized differential runs tegen een
+`LinkedHashMap`/`LinkedHashSet` referentiemodel. De suites controleren
 ook linked-list pointerinvarianten, negatieve indices, reverse traversal en
 randomized differential tests tegen `java.util.LinkedList`, LIFO-gedrag,
 stackgroei en nullwaarden, FIFO-gedrag en queue-wraparound,
