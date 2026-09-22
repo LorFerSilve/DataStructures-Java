@@ -1,0 +1,59 @@
+package DataStructures;
+
+/** Small executable examples of the public API. */
+public final class Examples {
+    private Examples() { }
+
+    public static void main(String[] args) {
+        List<Integer> numbers = List.of(0, 1, 2, 3, 4, 5);
+        System.out.println("Reversed slice: " + numbers.sliceAll(-1));
+        numbers.setSlice(0, numbers.size(), 2, List.of(10, 20, 30));
+        System.out.println("Replace every second value: " + numbers);
+        numbers.removeSlice(1, numbers.size(), 2);
+        System.out.println("Remove every second value: " + numbers);
+
+        List<String> words = List.of("pear", "fig", "apple", "plum");
+        words.sort(String::length);
+        System.out.println("Stable sort by length: " + words);
+
+        Tuple point = Tuple.of("origin", 0, 0);
+        System.out.println("Tuple: " + point + ", label: " + point.get(0, String.class));
+
+        Set<String> backend = Set.of("Java", "Python");
+        Set<String> scripting = Set.of("Python", "JavaScript");
+        System.out.println("Shared languages: " + backend.intersection(scripting));
+
+        Dictionary<String, Integer> inventory = new Dictionary<>();
+        inventory.updateEntries(java.util.List.of(java.util.Map.entry("apples", 3)));
+        Dictionary<String, Integer>.KeyView liveKeys = inventory.keys();
+        inventory.put("pears", 5);
+        System.out.println("Live keys: " + liveKeys);
+        System.out.println("Last inserted item: " + inventory.popItem());
+        System.out.println("Inventory: " + inventory);
+
+        ArrayDeque<String> queue = ArrayDeque.of("first", "second");
+        queue.addLast("third");
+        System.out.println("Next in queue: " + queue.removeFirst());
+        queue.push("urgent");
+        System.out.println("Stack pop: " + queue.pop());
+        System.out.println("Remaining queue: " + queue);
+
+        BinaryHeap<Integer> priorities = BinaryHeap.of(8, 3, 5, 1);
+        System.out.println("Lowest priority value: " + priorities.poll());
+        System.out.println("Remaining priorities, sorted: " + priorities.sorted());
+
+        BinaryHeap<Integer> highestFirst = new BinaryHeap<>(
+            List.of(8, 3, 5, 1), java.util.Comparator.reverseOrder()
+        );
+        System.out.println("Highest priority value: " + highestFirst.poll());
+
+        BinaryHeap<String> shortestFirst = new BinaryHeap<>(
+            List.of("pear", "fig", "apple"), java.util.Comparator.comparingInt(String::length)
+        );
+        System.out.println("Custom priority (shortest word): " + shortestFirst.poll());
+
+        List<Object> recursive = new List<>();
+        recursive.append(recursive);
+        System.out.println("Recursive list: " + recursive);
+    }
+}
