@@ -68,6 +68,13 @@ public final class RepresentationTests {
         deque.addLast(deque);
         equal("ArrayDeque([ArrayDeque([...])])", deque.toString(), "self-referencing deque");
 
+        equal("Graph(directed=false, vertices=[], edges=[])",
+            new Graph<>().toString(), "empty graph");
+        Graph<Object> graph = new Graph<>();
+        graph.addVertex(graph);
+        equal("Graph(directed=false, vertices=[Graph(...)], edges=[])",
+            graph.toString(), "self-referencing graph");
+
         equal("AVLTree([])", new AVLTree<>().toString(), "empty AVL tree");
         AVLTree<Object> avl = new AVLTree<>((left, right) -> 0);
         avl.add(avl);
@@ -102,17 +109,22 @@ public final class RepresentationTests {
         identityKeys.put(treeKey, "tree");
         AVLTree<Integer> avlKey = AVLTree.of(2, 1, 3);
         identityKeys.put(avlKey, "avl");
+        Graph<Integer> graphKey = new Graph<>();
+        graphKey.addVertex(1);
+        identityKeys.put(graphKey, "graph");
         stack.push("changed");
         queue.add("changed");
         deque.addLast("changed");
         heap.add("changed");
         treeKey.add(4);
         avlKey.add(4);
+        graphKey.addVertex(2);
         equal("stack", identityKeys.get(stack), "stack identity key survives mutation");
         equal("queue", identityKeys.get(queue), "queue identity key survives mutation");
         equal("deque", identityKeys.get(deque), "deque identity key survives mutation");
         equal("heap", identityKeys.get(heap), "heap identity key survives mutation");
         equal("tree", identityKeys.get(treeKey), "BST identity key survives mutation");
         equal("avl", identityKeys.get(avlKey), "AVL identity key survives mutation");
+        equal("graph", identityKeys.get(graphKey), "Graph identity key survives mutation");
     }
 }
