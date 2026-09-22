@@ -10,6 +10,8 @@ typen elementen. `Stack` gebruikt een eigen dynamische array voor LIFO-bewerking
 circulaire array voor bewerkingen aan beide uiteinden.
 `BinaryHeap` gebruikt een array voor een prioriteitswachtrij. `BinarySearchTree`
 gebruikt private nodes met parent/left/right-links voor geordende set-semantiek.
+`AVLTree` voegt per node hoogte-metadata en automatische rotations toe om de boom
+na elke mutatie gebalanceerd te houden.
 
 ## Bouwen en testen
 
@@ -21,7 +23,7 @@ Open PowerShell in deze map en voer uit:
 .\test.ps1 -Demo
 ```
 
-Het script compileert met `--release 17 -Xlint:all -Werror` en voert elf testsuites
+Het script compileert met `--release 17 -Xlint:all -Werror` en voert twaalf testsuites
 uit. Tests gebruiken expliciete controles en werken ook zonder `-ea`.
 De gecompileerde bestanden komen in `build/classes`.
 
@@ -93,6 +95,13 @@ tree.levelOrder();                      // [8, 4, 12, 2, 6, 10, 14]
 tree.floor(9);                          // 8
 tree.higher(10);                        // 12
 
+AVLTree<Integer> avl = new AVLTree<>();
+for (int value = 1; value <= 7; value++) {
+    avl.add(value);
+}
+avl.levelOrder();                       // [4, 2, 6, 1, 3, 5, 7]
+avl.height();                           // 3
+
 BinaryHeap<Integer> heap = BinaryHeap.of(8, 3, 5, 1);
 heap.peek();                            // 1, zonder te verwijderen
 heap.poll();                            // verwijdert 1
@@ -120,6 +129,7 @@ maxHeap.poll();                         // 8
 | `ArrayDeque<T>` | add/remove/poll/peek aan beide uiteinden, queue- en stackmethoden, verwijderen op waarde, voorwaartse/achterwaartse iteratie, kopieën, streams |
 | `BinaryHeap<T>` | add/offer, peek/poll, element/remove, verwijderen op waarde, comparator, heapify-constructor, gesorteerde kopie, streams |
 | `BinarySearchTree<T>` | add/remove/contains, min/max, lower/floor/ceiling/higher, height/depth, in/pre/post/level-order traversals, reverse iteratie, streams |
+| `AVLTree<T>` | dezelfde geordende-set API als BST, plus automatische LL/RR/LR/RL balancing met opgeslagen subtree heights |
 
 - Negatieve indices tellen vanaf het einde; een slice-eindpunt is exclusief.
   Slicegrenzen worden begrensd tot de reeks. Een stap van nul is ongeldig.
@@ -144,8 +154,8 @@ maxHeap.poll();                         // 8
 - Structurele wijzigingen maken bestaande iterators ongeldig. De structuren
   zijn niet bedoeld voor gelijktijdig wijzigen vanuit meerdere threads.
 - `List`, `LinkedList`, `Tuple`, `Set` en `Dictionary` vergelijken hun inhoud met
-  instanties van dezelfde custom structuur. `Stack`, `Queue`, `ArrayDeque`, `BinaryHeap`
-  en `BinarySearchTree` gebruiken objectidentiteit voor `equals` en `hashCode`.
+  instanties van dezelfde custom structuur. `Stack`, `Queue`, `ArrayDeque`, `BinaryHeap`,
+  `BinarySearchTree` en `AVLTree` gebruiken objectidentiteit voor `equals` en `hashCode`.
   Hashkeys en setelementen moeten stabiele
   `equals`/`hashCode` houden. Dictionary weigert mutable `List`, `LinkedList`,
   `Set` en `Dictionary`-instanties als key, ook wanneer die in een tuple zitten.
@@ -180,8 +190,24 @@ De boom bewaart private parent/left/right-links. `minimum`, `maximum`,
 
 De boom balanceert zichzelf bewust **niet**. `height()` telt niveaus: een lege boom
 heeft hoogte 0 en een losse root hoogte 1. Een oplopende invoer kan dus een keten
-met hoogte n vormen. Dit maakt het verschil met de volgende tree-fase, een
-zelfbalancerende AVL-tree, expliciet zichtbaar.
+met hoogte n vormen. Dit vormt het referentiepunt voor de zelfbalancerende AVL-tree.
+
+## AVLTree
+
+`AVLTree` rondt Phase 3 (Trees) af. De publieke ordered-set API sluit bewust aan op
+`BinarySearchTree`: unieke comparatorwaarden, `minimum`/`maximum`,
+`pollMinimum`/`pollMaximum`, `lower`/`floor`/`ceiling`/`higher`, depth/height,
+de vier traversals, reverse iteratie, streams en shallow copies.
+
+Elke AVL-node bewaart daarnaast zijn subtree-height. Na insertions en removals wordt
+vanaf het gewijzigde pad naar de root opnieuw gebalanceerd. De implementatie bevat
+de vier klassieke gevallen: LL en RR met één rotation, en LR en RL met een dubbele
+rotation. Parent-links, child-links en height-metadata worden tijdens rotations
+atomair hersteld voordat de volgende ancestor wordt verwerkt.
+
+Daardoor blijft de hoogte O(log n), ook voor pathologische invoervolgordes zoals
+`1, 2, 3, ..., n`. In tegenstelling tot de gewone BST kan een gesorteerde invoer de
+AVL-boom dus niet degraderen tot een lineaire keten.
 
 ## Stack, Queue, ArrayDeque en BinaryHeap
 
@@ -256,6 +282,12 @@ Bij `BinarySearchTree` kosten `add`, `contains`, `remove`, navigatie en
 boom is dat typisch O(log n), maar zonder balancing kan h tot n groeien.
 Traversals, `height()` en kopiëren zijn O(n); opslag is O(n).
 
+Bij `AVLTree` blijft h door rotations O(log n). `add`, `contains`, `remove`,
+`minimum`/`maximum` en ordered navigation zijn daardoor worst-case O(log n).
+`height()` is O(1) omdat elke node zijn subtree-height bijhoudt. Volledige traversals
+en kopiëren zijn O(n); een insertion of deletion gebruikt O(log n) padwerk en O(1)
+rotations per ongebalanceerde ancestor.
+
 Bij `BinaryHeap` is `peek` O(1). Toevoegen en het bovenste element verwijderen
 kosten O(log n), afgezien van incidentele O(n)-arraygroei bij toevoegen.
 Bulkconstructie met heapify is O(n); zoeken of verwijderen op waarde is O(n).
@@ -268,8 +300,10 @@ hashbotsingen, nulls, verwijderingen en invoegvolgorde. Willekeurige bewerkingen
 met vaste seeds worden vergeleken met Java's standaardcollecties, waaronder
 `java.util.ArrayDeque`, `java.util.PriorityQueue` en `java.util.TreeSet`. De nieuwe
 tests controleren BST-verwijderingen met nul/één/twee kinderen, navigatiegrenzen,
-alle vier traversals, comparatorgedrag, degeneratie en randomized differential
-operations, en controleren
+alle vier traversals, comparatorgedrag en degeneratie. Voor AVL worden alle vier
+rotationfamilies, deletion-rebalancing, gesorteerde invoer, logarithmische
+hoogtegrenzen en 30.000 randomized differential operations tegen `TreeSet`
+gecontroleerd. Daarmee is Phase 3 (Trees) afgerond. De suites controleren
 ook linked-list pointerinvarianten, negatieve indices, reverse traversal en
 randomized differential tests tegen `java.util.LinkedList`, LIFO-gedrag,
 stackgroei en nullwaarden, FIFO-gedrag en queue-wraparound,
