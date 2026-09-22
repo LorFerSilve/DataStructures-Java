@@ -14,8 +14,9 @@ public final class AllTests {
         run("Queue", QueueTests::run);
         run("ArrayDeque", ArrayDequeTests::run);
         run("BinaryHeap", BinaryHeapTests::run);
+        run("BinarySearchTree", BinarySearchTreeTests::run);
         run("Representation", RepresentationTests::run);
-        System.out.println("All 10 test suites passed.");
+        System.out.println("All 11 test suites passed.");
     }
 
     private static void run(String name, Runnable suite) {
