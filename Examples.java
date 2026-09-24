@@ -84,6 +84,10 @@ public final class Examples {
         System.out.println("Frontend reaches database component: "
             + services.connected("frontend", "database"));
 
+        Trie routes = Trie.of("api", "app", "apple", "auth");
+        System.out.println("Trie words with 'ap': " + routes.wordsWithPrefix("ap"));
+        System.out.println("Longest route prefix: " + routes.longestPrefixOf("apple/pay"));
+
         BinaryHeap<Integer> priorities = BinaryHeap.of(8, 3, 5, 1);
         System.out.println("Lowest priority value: " + priorities.poll());
         System.out.println("Remaining priorities, sorted: " + priorities.sorted());
