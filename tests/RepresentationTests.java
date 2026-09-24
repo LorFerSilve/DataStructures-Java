@@ -82,6 +82,10 @@ public final class RepresentationTests {
         equal("DisjointSet([[DisjointSet(...)]])", disjoint.toString(),
             "self-referencing disjoint set");
 
+        equal("Trie([])", new Trie().toString(), "empty trie");
+        equal("Trie(['car', 'cart', 'cat'])",
+            Trie.of("car", "cart", "cat").toString(), "trie repr");
+
         equal("AVLTree([])", new AVLTree<>().toString(), "empty AVL tree");
         AVLTree<Object> avl = new AVLTree<>((left, right) -> 0);
         avl.add(avl);
@@ -121,6 +125,8 @@ public final class RepresentationTests {
         identityKeys.put(graphKey, "graph");
         DisjointSet<Integer> disjointKey = DisjointSet.of(1, 2);
         identityKeys.put(disjointKey, "disjoint");
+        Trie trieKey = Trie.of("a");
+        identityKeys.put(trieKey, "trie");
         stack.push("changed");
         queue.add("changed");
         deque.addLast("changed");
@@ -129,6 +135,7 @@ public final class RepresentationTests {
         avlKey.add(4);
         graphKey.addVertex(2);
         disjointKey.union(1, 2);
+        trieKey.add("ab");
         equal("stack", identityKeys.get(stack), "stack identity key survives mutation");
         equal("queue", identityKeys.get(queue), "queue identity key survives mutation");
         equal("deque", identityKeys.get(deque), "deque identity key survives mutation");
@@ -138,5 +145,7 @@ public final class RepresentationTests {
         equal("graph", identityKeys.get(graphKey), "Graph identity key survives mutation");
         equal("disjoint", identityKeys.get(disjointKey),
             "DisjointSet identity key survives mutation");
+        equal("trie", identityKeys.get(trieKey),
+            "Trie identity key survives mutation");
     }
 }

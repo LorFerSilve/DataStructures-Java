@@ -14,7 +14,8 @@ gebruikt private nodes met parent/left/right-links voor geordende set-semantiek.
 na elke mutatie gebalanceerd te houden. `Graph` gebruikt een adjacency-map bovenop
 de eigen `Dictionary`-implementatie en bewaart zowel vertices als neighbors in
 invoegvolgorde. `DisjointSet` implementeert Union-Find met path compression en
-union-by-size voor efficiënte dynamische componentqueries.
+union-by-size voor efficiënte dynamische componentqueries. `Trie` is een
+prefixboom voor efficiënte string- en prefixqueries.
 
 ## Bouwen en testen
 
@@ -26,7 +27,7 @@ Open PowerShell in deze map en voer uit:
 .\test.ps1 -Demo
 ```
 
-Het script compileert met `--release 17 -Xlint:all -Werror` en voert veertien testsuites
+Het script compileert met `--release 17 -Xlint:all -Werror` en voert vijftien testsuites
 uit. Tests gebruiken expliciete controles en werken ook zonder `-ea`.
 De gecompileerde bestanden komen in `build/classes`.
 
@@ -121,6 +122,11 @@ services.union("frontend", "api");
 services.connected("frontend", "database"); // true
 services.components();                  // [[frontend, api, database], [cache]]
 
+Trie routes = Trie.of("api", "app", "apple", "auth");
+routes.wordsWithPrefix("ap");           // [api, app, apple]
+routes.prefixesOf("apple/pay");         // [app, apple]
+routes.longestPrefixOf("apple/pay");    // "apple"
+
 BinaryHeap<Integer> heap = BinaryHeap.of(8, 3, 5, 1);
 heap.peek();                            // 1, zonder te verwijderen
 heap.poll();                            // verwijdert 1
@@ -151,6 +157,7 @@ maxHeap.poll();                         // 8
 | `AVLTree<T>` | dezelfde geordende-set API als BST, plus automatische LL/RR/LR/RL balancing met opgeslagen subtree heights |
 | `Graph<V>` | directed/undirected vertices en edges, neighbors/degrees, BFS/DFS, shortest path, components, cycle detection, topological sort, streams |
 | `DisjointSet<T>` | add/find/union, connected, componentSize/count, representatives, components, kopieën, streams |
+| `Trie` | add/remove, exact lookup, prefix lookup/count, removePrefix, wordsWithPrefix, prefixesOf, longestPrefixOf, kopieën, streams |
 
 - Negatieve indices tellen vanaf het einde; een slice-eindpunt is exclusief.
   Slicegrenzen worden begrensd tot de reeks. Een stap van nul is ongeldig.
@@ -176,7 +183,7 @@ maxHeap.poll();                         // 8
   zijn niet bedoeld voor gelijktijdig wijzigen vanuit meerdere threads.
 - `List`, `LinkedList`, `Tuple`, `Set` en `Dictionary` vergelijken hun inhoud met
   instanties van dezelfde custom structuur. `Stack`, `Queue`, `ArrayDeque`, `BinaryHeap`,
-  `BinarySearchTree`, `AVLTree`, `Graph` en `DisjointSet` gebruiken objectidentiteit voor `equals` en `hashCode`.
+  `BinarySearchTree`, `AVLTree`, `Graph`, `DisjointSet` en `Trie` gebruiken objectidentiteit voor `equals` en `hashCode`.
   Hashkeys en setelementen moeten stabiele
   `equals`/`hashCode` houden. Dictionary weigert mutable `List`, `LinkedList`,
   `Set` en `Dictionary`-instanties als key, ook wanneer die in een tuple zitten.
@@ -270,6 +277,32 @@ wijzigt daarom geen iteratievolgorde en maakt bestaande iterators niet ongeldig;
 `add` en `clear` doen dat wel. `copy()` bewaart de partitionering en dezelfde
 representative-waarden, maar heeft onafhankelijke interne Union-Find-nodes.
 
+Met `Graph<V>` en `DisjointSet<T>` is Phase 4 (Graph Structures) afgerond.
+
+## Trie
+
+`Trie` start Phase 5 (String Structures). De structuur slaat unieke,
+case-sensitive strings op in een prefixboom. Elke node gebruikt een eigen
+`Dictionary<Character, Node>`, waardoor sibling-takken deterministisch de
+volgorde volgen waarin hun edges voor het eerst zijn aangemaakt. Een opgeslagen
+prefix wordt vóór zijn langere descendants gerapporteerd.
+
+`contains` controleert een exact woord, terwijl `startsWith` en
+`countWithPrefix` een prefix onderzoeken. Elke node bewaart het aantal terminale
+woorden in zijn subtree, zodat prefix-counting niet de volledige tak hoeft te
+doorlopen. `wordsWithPrefix` geeft alle matches terug, `prefixesOf` geeft alle
+opgeslagen woorden die zelf prefix zijn van een invoertekst en
+`longestPrefixOf` kiest daarvan de langste.
+
+De lege string is een geldig woord. `remove` verwijdert één exact woord en
+prunet dode nodes. `removePrefix` verwijdert een volledige prefix-subtree en
+ruimt eveneens lege vooroudertakken op. Het verzamelen van woorden gebruikt een
+iteratieve traversal in plaats van recursie, zodat ook zeer diepe tries door
+lange strings geen call-stack overflow veroorzaken.
+
+Iterators werken over de deterministische woordvolgorde en zijn fail-fast bij
+membershipwijzigingen. `copy()` maakt een onafhankelijke shallow kopie met
+dezelfde woorden en traversalvolgorde.
 
 ## Stack, Queue, ArrayDeque en BinaryHeap
 
@@ -361,6 +394,13 @@ Door union-by-size en path compression hebben `find`, `union`, `connected` en
 `componentSize` een geamortiseerde kost van O(α(n)), praktisch bijna constant.
 `components`, `representatives` en kopiëren zijn O(n). De opslag is O(n).
 
+Bij `Trie` kosten exact lookup, toevoegen en verwijderen O(L), waarbij L de
+stringlengte is. Prefix lookup en `countWithPrefix` kosten O(P) voor een prefix
+van lengte P. `wordsWithPrefix` kost O(P + R), waarbij R de omvang is van de
+geretourneerde subtree-output. `removePrefix` kost O(P) plus het vrijgeven van de
+losgekoppelde subtree door de garbage collector. De opslag is O(C), met C het
+aantal opgeslagen trie-nodes/code-units.
+
 Bij `BinaryHeap` is `peek` O(1). Toevoegen en het bovenste element verwijderen
 kosten O(log n), afgezien van incidentele O(n)-arraygroei bij toevoegen.
 Bulkconstructie met heapify is O(n); zoeken of verwijderen op waarde is O(n).
@@ -383,7 +423,11 @@ traversal en twee 20.000-step randomized differential runs tegen een
 `LinkedHashMap`/`LinkedHashSet` referentiemodel. De DisjointSet-suite controleert
 union-by-size, representatives, componentgroottes, kopieën, iteratorgedrag en
 30.000 randomized differential operations tegen een onafhankelijk
-`LinkedHashMap`-referentiemodel. De suites controleren
+`LinkedHashMap`-referentiemodel. Daarmee is Phase 4 afgerond. De Trie-suite
+controleert empty-string-semantiek, deterministische prefixtraversal, subtree
+counts, pruning, bulk-prefixverwijdering, lange niet-recursieve traversals en
+25.000 randomized differential operations tegen een `LinkedHashSet`-referentie.
+De suites controleren
 ook linked-list pointerinvarianten, negatieve indices, reverse traversal en
 randomized differential tests tegen `java.util.LinkedList`, LIFO-gedrag,
 stackgroei en nullwaarden, FIFO-gedrag en queue-wraparound,
