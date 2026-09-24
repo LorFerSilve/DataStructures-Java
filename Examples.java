@@ -76,6 +76,14 @@ public final class Examples {
         System.out.println("Graph BFS: " + dependencyGraph.breadthFirst("compile"));
         System.out.println("Graph topological order: " + dependencyGraph.topologicalSort());
 
+        DisjointSet<String> services =
+            DisjointSet.of("frontend", "api", "database", "cache");
+        services.union("api", "database");
+        services.union("frontend", "api");
+        System.out.println("Disjoint-set components: " + services.components());
+        System.out.println("Frontend reaches database component: "
+            + services.connected("frontend", "database"));
+
         BinaryHeap<Integer> priorities = BinaryHeap.of(8, 3, 5, 1);
         System.out.println("Lowest priority value: " + priorities.poll());
         System.out.println("Remaining priorities, sorted: " + priorities.sorted());
