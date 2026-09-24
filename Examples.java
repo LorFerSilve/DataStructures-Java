@@ -88,6 +88,13 @@ public final class Examples {
         System.out.println("Trie words with 'ap': " + routes.wordsWithPrefix("ap"));
         System.out.println("Longest route prefix: " + routes.longestPrefixOf("apple/pay"));
 
+        RadixTree compressedRoutes =
+            RadixTree.of("compression", "compress", "company", "compact");
+        System.out.println("Radix words with 'comp': "
+            + compressedRoutes.wordsWithPrefix("comp"));
+        System.out.println("Compressed radix node count: "
+            + compressedRoutes.nodeCount());
+
         BinaryHeap<Integer> priorities = BinaryHeap.of(8, 3, 5, 1);
         System.out.println("Lowest priority value: " + priorities.poll());
         System.out.println("Remaining priorities, sorted: " + priorities.sorted());
