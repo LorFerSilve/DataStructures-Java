@@ -19,8 +19,9 @@ public final class AllTests {
         run("Graph", GraphTests::run);
         run("DisjointSet", DisjointSetTests::run);
         run("Trie", TrieTests::run);
+        run("RadixTree", RadixTreeTests::run);
         run("Representation", RepresentationTests::run);
-        System.out.println("All 15 test suites passed.");
+        System.out.println("All 16 test suites passed.");
     }
 
     private static void run(String name, Runnable suite) {
