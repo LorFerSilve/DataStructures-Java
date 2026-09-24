@@ -13,7 +13,8 @@ gebruikt private nodes met parent/left/right-links voor geordende set-semantiek.
 `AVLTree` voegt per node hoogte-metadata en automatische rotations toe om de boom
 na elke mutatie gebalanceerd te houden. `Graph` gebruikt een adjacency-map bovenop
 de eigen `Dictionary`-implementatie en bewaart zowel vertices als neighbors in
-invoegvolgorde.
+invoegvolgorde. `DisjointSet` implementeert Union-Find met path compression en
+union-by-size voor efficiënte dynamische componentqueries.
 
 ## Bouwen en testen
 
@@ -25,7 +26,7 @@ Open PowerShell in deze map en voer uit:
 .\test.ps1 -Demo
 ```
 
-Het script compileert met `--release 17 -Xlint:all -Werror` en voert dertien testsuites
+Het script compileert met `--release 17 -Xlint:all -Werror` en voert veertien testsuites
 uit. Tests gebruiken expliciete controles en werken ook zonder `-ea`.
 De gecompileerde bestanden komen in `build/classes`.
 
@@ -113,6 +114,13 @@ graph.addEdge("test", "package");
 graph.breadthFirst("compile");           // [compile, test, package]
 graph.topologicalSort();                 // [compile, test, package]
 
+DisjointSet<String> services =
+    DisjointSet.of("frontend", "api", "database", "cache");
+services.union("api", "database");
+services.union("frontend", "api");
+services.connected("frontend", "database"); // true
+services.components();                  // [[frontend, api, database], [cache]]
+
 BinaryHeap<Integer> heap = BinaryHeap.of(8, 3, 5, 1);
 heap.peek();                            // 1, zonder te verwijderen
 heap.poll();                            // verwijdert 1
@@ -142,6 +150,7 @@ maxHeap.poll();                         // 8
 | `BinarySearchTree<T>` | add/remove/contains, min/max, lower/floor/ceiling/higher, height/depth, in/pre/post/level-order traversals, reverse iteratie, streams |
 | `AVLTree<T>` | dezelfde geordende-set API als BST, plus automatische LL/RR/LR/RL balancing met opgeslagen subtree heights |
 | `Graph<V>` | directed/undirected vertices en edges, neighbors/degrees, BFS/DFS, shortest path, components, cycle detection, topological sort, streams |
+| `DisjointSet<T>` | add/find/union, connected, componentSize/count, representatives, components, kopieën, streams |
 
 - Negatieve indices tellen vanaf het einde; een slice-eindpunt is exclusief.
   Slicegrenzen worden begrensd tot de reeks. Een stap van nul is ongeldig.
@@ -167,7 +176,7 @@ maxHeap.poll();                         // 8
   zijn niet bedoeld voor gelijktijdig wijzigen vanuit meerdere threads.
 - `List`, `LinkedList`, `Tuple`, `Set` en `Dictionary` vergelijken hun inhoud met
   instanties van dezelfde custom structuur. `Stack`, `Queue`, `ArrayDeque`, `BinaryHeap`,
-  `BinarySearchTree`, `AVLTree` en `Graph` gebruiken objectidentiteit voor `equals` en `hashCode`.
+  `BinarySearchTree`, `AVLTree`, `Graph` en `DisjointSet` gebruiken objectidentiteit voor `equals` en `hashCode`.
   Hashkeys en setelementen moeten stabiele
   `equals`/`hashCode` houden. Dictionary weigert mutable `List`, `LinkedList`,
   `Set` en `Dictionary`-instanties als key, ook wanneer die in een tuple zitten.
@@ -240,8 +249,27 @@ slechts één keer, ook al worden beide adjacency-richtingen intern opgeslagen.
 Structurele wijzigingen aan vertices **of edges** maken bestaande Graph-iterators
 en gebonden spliterators ongeldig.
 
-Phase 4 is hiermee gestart; `DisjointSet<T>` / Union-Find is de volgende structuur
-binnen deze phase.
+## DisjointSet
+
+`DisjointSet<T>` is de tweede structuur van Phase 4. Elk toegevoegd element start
+als een afzonderlijke component. `union(a, b)` voegt twee componenten samen,
+`find(value)` geeft de huidige representative terug en `connected(a, b)` controleert
+of twee elementen tot dezelfde component behoren. Ontbrekende elementen worden
+niet impliciet toegevoegd: queries en unions vereisen dat beide waarden al bestaan.
+
+De interne Union-Find-bomen gebruiken union-by-size: de kleinere boom wordt onder
+de grotere gehangen. Bij gelijke grootte blijft de representative van het eerste
+argument behouden. `find` past volledige path compression toe, waardoor bezochte
+nodes rechtstreeks naar hun root gaan wijzen. `componentSize`, `componentCount`,
+`representatives` en `components` bieden snapshots van de huidige partitionering.
+Componenten en hun leden worden deterministisch gerapporteerd volgens globale
+invoegvolgorde.
+
+Iterators lopen uitsluitend over opgeslagen elementen. Een `union` of `find`
+wijzigt daarom geen iteratievolgorde en maakt bestaande iterators niet ongeldig;
+`add` en `clear` doen dat wel. `copy()` bewaart de partitionering en dezelfde
+representative-waarden, maar heeft onafhankelijke interne Union-Find-nodes.
+
 
 ## Stack, Queue, ArrayDeque en BinaryHeap
 
@@ -328,6 +356,11 @@ directed vertex is O(V + E) in de huidige adjacency-out representatie. BFS, DFS,
 cycle detection, connected components en topological sort zijn O(V + E).
 `shortestPath` is eveneens O(V + E) en gebruikt O(V) extra traversal-state.
 
+Bij `DisjointSet` zijn `add` en membership-lookups gemiddeld O(1) door hashing.
+Door union-by-size en path compression hebben `find`, `union`, `connected` en
+`componentSize` een geamortiseerde kost van O(α(n)), praktisch bijna constant.
+`components`, `representatives` en kopiëren zijn O(n). De opslag is O(n).
+
 Bij `BinaryHeap` is `peek` O(1). Toevoegen en het bovenste element verwijderen
 kosten O(log n), afgezien van incidentele O(n)-arraygroei bij toevoegen.
 Bulkconstructie met heapify is O(n); zoeken of verwijderen op waarde is O(n).
@@ -347,7 +380,10 @@ gecontroleerd. Daarmee is Phase 3 (Trees) afgerond. De Graph-suite controleert
 directed/undirected edge-semantiek, self-loops, degrees, vertex-removal, BFS/DFS,
 shortest paths, connected components, cycles, topological sorting, fail-fast
 traversal en twee 20.000-step randomized differential runs tegen een
-`LinkedHashMap`/`LinkedHashSet` referentiemodel. De suites controleren
+`LinkedHashMap`/`LinkedHashSet` referentiemodel. De DisjointSet-suite controleert
+union-by-size, representatives, componentgroottes, kopieën, iteratorgedrag en
+30.000 randomized differential operations tegen een onafhankelijk
+`LinkedHashMap`-referentiemodel. De suites controleren
 ook linked-list pointerinvarianten, negatieve indices, reverse traversal en
 randomized differential tests tegen `java.util.LinkedList`, LIFO-gedrag,
 stackgroei en nullwaarden, FIFO-gedrag en queue-wraparound,
