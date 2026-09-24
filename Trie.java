@@ -204,6 +204,14 @@ public final class Trie implements Iterable<String> {
         Node parent = path.get(path.size() - 2);
         parent.children.remove(prefix.charAt(prefix.length() - 1));
 
+        for (int index = prefix.length() - 2; index >= 0; index--) {
+            Node child = path.get(index + 1);
+            if (child.subtreeWords != 0) {
+                break;
+            }
+            path.get(index).children.remove(prefix.charAt(index));
+        }
+
         size -= removed;
         modCount++;
         return removed;
