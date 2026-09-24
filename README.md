@@ -15,7 +15,8 @@ na elke mutatie gebalanceerd te houden. `Graph` gebruikt een adjacency-map boven
 de eigen `Dictionary`-implementatie en bewaart zowel vertices als neighbors in
 invoegvolgorde. `DisjointSet` implementeert Union-Find met path compression en
 union-by-size voor efficiënte dynamische componentqueries. `Trie` is een
-prefixboom voor efficiënte string- en prefixqueries.
+klassieke prefixboom voor efficiënte string- en prefixqueries; `RadixTree`
+comprimeert niet-vertakkende trie-paden tot meertekens-edges.
 
 ## Bouwen en testen
 
@@ -27,7 +28,7 @@ Open PowerShell in deze map en voer uit:
 .\test.ps1 -Demo
 ```
 
-Het script compileert met `--release 17 -Xlint:all -Werror` en voert vijftien testsuites
+Het script compileert met `--release 17 -Xlint:all -Werror` en voert zestien testsuites
 uit. Tests gebruiken expliciete controles en werken ook zonder `-ea`.
 De gecompileerde bestanden komen in `build/classes`.
 
@@ -127,6 +128,11 @@ routes.wordsWithPrefix("ap");           // [api, app, apple]
 routes.prefixesOf("apple/pay");         // [app, apple]
 routes.longestPrefixOf("apple/pay");    // "apple"
 
+RadixTree compressed =
+    RadixTree.of("compression", "compress", "company", "compact");
+compressed.wordsWithPrefix("comp");     // alle vier woorden
+compressed.nodeCount();                 // minder nodes dan een gewone trie
+
 BinaryHeap<Integer> heap = BinaryHeap.of(8, 3, 5, 1);
 heap.peek();                            // 1, zonder te verwijderen
 heap.poll();                            // verwijdert 1
@@ -158,6 +164,7 @@ maxHeap.poll();                         // 8
 | `Graph<V>` | directed/undirected vertices en edges, neighbors/degrees, BFS/DFS, shortest path, components, cycle detection, topological sort, streams |
 | `DisjointSet<T>` | add/find/union, connected, componentSize/count, representatives, components, kopieën, streams |
 | `Trie` | add/remove, exact lookup, prefix lookup/count, removePrefix, wordsWithPrefix, prefixesOf, longestPrefixOf, kopieën, streams |
+| `RadixTree` | dezelfde prefix-API als Trie, plus path-compressed edges, recompressie na removal en nodeCount |
 
 - Negatieve indices tellen vanaf het einde; een slice-eindpunt is exclusief.
   Slicegrenzen worden begrensd tot de reeks. Een stap van nul is ongeldig.
@@ -183,7 +190,7 @@ maxHeap.poll();                         // 8
   zijn niet bedoeld voor gelijktijdig wijzigen vanuit meerdere threads.
 - `List`, `LinkedList`, `Tuple`, `Set` en `Dictionary` vergelijken hun inhoud met
   instanties van dezelfde custom structuur. `Stack`, `Queue`, `ArrayDeque`, `BinaryHeap`,
-  `BinarySearchTree`, `AVLTree`, `Graph`, `DisjointSet` en `Trie` gebruiken objectidentiteit voor `equals` en `hashCode`.
+  `BinarySearchTree`, `AVLTree`, `Graph`, `DisjointSet`, `Trie` en `RadixTree` gebruiken objectidentiteit voor `equals` en `hashCode`.
   Hashkeys en setelementen moeten stabiele
   `equals`/`hashCode` houden. Dictionary weigert mutable `List`, `LinkedList`,
   `Set` en `Dictionary`-instanties als key, ook wanneer die in een tuple zitten.
@@ -304,6 +311,32 @@ Iterators werken over de deterministische woordvolgorde en zijn fail-fast bij
 membershipwijzigingen. `copy()` maakt een onafhankelijke shallow kopie met
 dezelfde woorden en traversalvolgorde.
 
+## RadixTree
+
+`RadixTree` is de tweede structuur van Phase 5 (String Structures) en gebruikt
+dezelfde publieke prefix-semantiek als `Trie`. Het verschil zit in de opslag:
+een edge bevat een volledige niet-vertakkende substring in plaats van exact één
+code-unit. Een enkel lang woord kan daardoor in één radix-node worden opgeslagen,
+terwijl de klassieke trie voor elke code-unit een afzonderlijke node nodig heeft.
+
+Bij `add` wordt een bestaande compressed edge gesplitst zodra het nieuwe woord
+slechts een gedeeltelijke prefix deelt. Wanneer een verwijderd woord een interne
+node niet langer terminal maakt en die node nog maar één child heeft, worden beide
+edges opnieuw samengevoegd. `removePrefix` ondersteunt ook prefixes die midden in
+een compressed edge eindigen en verwijdert dan de volledige onderliggende subtree.
+
+Elke radix-node bewaart, net zoals bij `Trie`, het aantal terminale woorden in
+zijn subtree. Daardoor blijven `startsWith` en `countWithPrefix` afhankelijk van
+de lengte van het gezochte pad in plaats van van het aantal opgeslagen woorden.
+`wordsWithPrefix`, `prefixesOf` en `longestPrefixOf` hebben dezelfde
+betekenis als bij `Trie`. `nodeCount()` maakt de structurele compressie
+observeerbaar zonder interne nodes publiek bloot te stellen.
+
+Traversal is iteratief en deterministisch: een opgeslagen prefix verschijnt vóór
+langere descendants; sibling-branches volgen de oorspronkelijke edge-invoegvolgorde.
+Iterators zijn fail-fast bij membershipwijzigingen en `copy()` maakt een
+onafhankelijke kopie met dezelfde woord- en compressed-tree-semantiek.
+
 ## Stack, Queue, ArrayDeque en BinaryHeap
 
 `Stack` laat `null` toe. `pop()` en `peek()` gooien een `NoSuchElementException`
@@ -401,6 +434,13 @@ geretourneerde subtree-output. `removePrefix` kost O(P) plus het vrijgeven van d
 losgekoppelde subtree door de garbage collector. De opslag is O(C), met C het
 aantal opgeslagen trie-nodes/code-units.
 
+Bij `RadixTree` blijven exact lookup, insertie en removal O(L) in het aantal
+vergeleken code-units. Prefix lookup en `countWithPrefix` zijn O(P).
+Path compression vermindert het aantal node-objecten voor gedeelde,
+niet-vertakkende paden, maar de totale opgeslagen labeltekst blijft O(C).
+`nodeCount()`, volledige traversal en kopiëren zijn O(N + output), waarbij N het
+aantal compressed nodes is.
+
 Bij `BinaryHeap` is `peek` O(1). Toevoegen en het bovenste element verwijderen
 kosten O(log n), afgezien van incidentele O(n)-arraygroei bij toevoegen.
 Bulkconstructie met heapify is O(n); zoeken of verwijderen op waarde is O(n).
@@ -427,6 +467,9 @@ union-by-size, representatives, componentgroottes, kopieën, iteratorgedrag en
 controleert empty-string-semantiek, deterministische prefixtraversal, subtree
 counts, pruning, bulk-prefixverwijdering, lange niet-recursieve traversals en
 25.000 randomized differential operations tegen een `LinkedHashSet`-referentie.
+De RadixTree-suite controleert edge-splits, recompressie, prefixes die midden in
+een compressed edge eindigen, zeer lange gedeelde prefixes en 30.000 randomized
+differential operations tegen een onafhankelijke `LinkedHashSet`-referentie.
 De suites controleren
 ook linked-list pointerinvarianten, negatieve indices, reverse traversal en
 randomized differential tests tegen `java.util.LinkedList`, LIFO-gedrag,
