@@ -86,6 +86,10 @@ public final class RepresentationTests {
         equal("Trie(['car', 'cart', 'cat'])",
             Trie.of("car", "cart", "cat").toString(), "trie repr");
 
+        equal("RadixTree([])", new RadixTree().toString(), "empty radix tree");
+        equal("RadixTree(['car', 'cart', 'cat'])",
+            RadixTree.of("car", "cart", "cat").toString(), "radix tree repr");
+
         equal("AVLTree([])", new AVLTree<>().toString(), "empty AVL tree");
         AVLTree<Object> avl = new AVLTree<>((left, right) -> 0);
         avl.add(avl);
@@ -127,6 +131,8 @@ public final class RepresentationTests {
         identityKeys.put(disjointKey, "disjoint");
         Trie trieKey = Trie.of("a");
         identityKeys.put(trieKey, "trie");
+        RadixTree radixKey = RadixTree.of("a");
+        identityKeys.put(radixKey, "radix");
         stack.push("changed");
         queue.add("changed");
         deque.addLast("changed");
@@ -136,6 +142,7 @@ public final class RepresentationTests {
         graphKey.addVertex(2);
         disjointKey.union(1, 2);
         trieKey.add("ab");
+        radixKey.add("ab");
         equal("stack", identityKeys.get(stack), "stack identity key survives mutation");
         equal("queue", identityKeys.get(queue), "queue identity key survives mutation");
         equal("deque", identityKeys.get(deque), "deque identity key survives mutation");
@@ -147,5 +154,7 @@ public final class RepresentationTests {
             "DisjointSet identity key survives mutation");
         equal("trie", identityKeys.get(trieKey),
             "Trie identity key survives mutation");
+        equal("radix", identityKeys.get(radixKey),
+            "RadixTree identity key survives mutation");
     }
 }
