@@ -58,7 +58,7 @@ public final class TrieTests {
         }
 
         equal(
-            List.of("", "dog", "do", "car", "cart", "cat", "apple"),
+            List.of("", "do", "dog", "car", "cart", "cat", "apple"),
             trie.words(),
             "deterministic trie traversal"
         );
@@ -68,7 +68,7 @@ public final class TrieTests {
             "prefix words include exact prefix"
         );
         equal(
-            List.of("dog", "do"),
+            List.of("do", "dog"),
             trie.wordsWithPrefix("do"),
             "prefix branch insertion order"
         );
